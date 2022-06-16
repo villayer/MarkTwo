@@ -11,6 +11,8 @@
 
 int parse_file(char *);
 void display_help(void);
+int copy_upper(FILE *);
+int copy_lower(FILE *);
 
 int main(int argc, char **argv) {
     
@@ -56,9 +58,11 @@ void display_help(void) {
 
 
 int parse_file(char *file_name) {
+    
+    char *output_name = "out.html";
 
     FILE *f = fopen(file_name, "r");
-    FILE *fout = fopen("out.html", "w");
+    FILE *out = fopen(output_name, "w");
 
     if(!f) {
         fprintf(stderr, "Could not open %s: ", file_name);
@@ -66,43 +70,91 @@ int parse_file(char *file_name) {
         return -1;
     }
     
-    char buff[30];
-    char bigbuff[1024];
+    if(!out) {
+        fprintf(stderr, "Could not open %s: ", output_name);
+        perror("");
+        return -1;
+    }
+    
+    copy_upper(out);
 
-    int inside_header = 0;
-    int hlen;
 
-    // read a line to bigbuff
-    while(fgets(bigbuff, sizeof(bigbuff), f) != NULL) {
+    int hlen = 0; // header length
+    int len = 0;  // real buffer length
+    char buff[500]; // buffer [MAX_LENGTH]
+
+    // read a line to big
+    while(fgets(buff, sizeof(buff), f) != NULL) {
+
+        len = strlen(buff);
         
-        // scan individual line
-        while(sscanf(bigbuff, "%s", buff) > 0) {
-            
-            // scan for a header
-            if (strncmp("#", buff, 1) == 0) {
-                hlen = strlen(buff);
-                
-                if (hlen > 6) {
-                    fprintf(stderr, "Header Length incompatible\n");
-                    break;
-                }
-
-                fprintf(fout, "<h%d>\n", hlen);
-                inside_header = 1; 
-            }
-
-            if (inside_header = 0)
-                fprintf(fout, "%s ", buff);
-
-            else {
-                fprintf(fout, "%s\n", bigbuff);
-                fprintf(fout, "<h%d/>\n", hlen);
+        for(int i = 0; i <len - 1; i++) {
+            if(buff[i] == '#') {
+                hlen++;
             }
         }
 
+        if (hlen != 0) {
+            if (hlen < 1 || hlen > 6) {
+                fprintf(stderr, "Error: header length error\n");
+                break;
+            }
+
+            fprintf(out, "<h%d>\n", hlen);
+            
+            for(int i = hlen; i < len - 1; i++)
+                fputc(buff[i], out);
+            fprintf(out, "\n<h%d/>\n", hlen);
+
+            hlen = 0;
+        }
+
+        else {
+            // for(int i = 0; i < len - 1; i++)
+            fputs(buff, out);
+        }
     }
 
-    fclose(fout); 
+    fputc('\n', out);
+    copy_lower(out);
+    
+
+    fclose(out); 
     fclose(f);
+    return 0;
+}
+
+
+int copy_upper(FILE *f) {
+    FILE *upper = fopen("__upper.html", "r");
+    
+    if (!upper)
+    {
+        perror("copy_upper:");
+        return -1;
+    }
+
+    char buff[512];
+    while( fgets(buff, sizeof(buff), upper) != NULL )
+        fputs(buff, f);
+
+    fclose(upper);
+    return 0;
+}
+
+int copy_lower(FILE *f) {
+    FILE *lower = fopen("__lower.html", "r");
+    
+    if (!lower)
+    {
+        perror("copy_lower:");
+        return -1;
+    }
+
+    char buff[512];
+    while( fgets(buff, sizeof(buff), lower) != NULL )
+        fputs(buff, f);
+
+    fclose(lower);
     return 0;
 }

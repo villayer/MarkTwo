@@ -137,6 +137,9 @@ int copy_upper(FILE *f) {
     char buff[512];
     while( fgets(buff, sizeof(buff), upper) != NULL )
         fputs(buff, f);
+    
+    fputc('\n', f);
+    fputc('\n', f);
 
     fclose(upper);
     return 0;
